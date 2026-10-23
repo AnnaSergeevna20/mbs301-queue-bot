@@ -10,6 +10,8 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+import os
+from aiohttp import web
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.client.default import DefaultBotProperties
@@ -43,7 +45,19 @@ async def periodic_queue_cleaner():
                 logger.info(f"Автоматически очищено очередей после закрытия: {cleared}")
         except Exception as e:
             logger.error(f"Ошибка в periodic_queue_cleaner: {e}")
-        await asyncio.sleep(30)
+async def health_check(request):
+    return web.Response(text="Bot is running!")
+
+async def start_web_server():
+    port = int(os.getenv("PORT", 8080))
+    app = web.Application()
+    app.router.add_get("/", health_check)
+    app.router.add_get("/health", health_check)
+    runner = web.AppRunner(app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    logger.info(f"Health-check веб-сервер запущен на порту {port}")
 
 async def main():
     if not BOT_TOKEN or BOT_TOKEN.strip() == "" or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
@@ -69,6 +83,9 @@ async def main():
 
     # Установка меню команд в Telegram
     await set_main_menu(bot)
+
+    # Запуск веб-сервера для совместимости с бесплатным тарифом Render Web Service
+    await start_web_server()
 
     # Запуск фонового очистителя закрытых очередей
     asyncio.create_task(periodic_queue_cleaner())
