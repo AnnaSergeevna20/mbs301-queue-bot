@@ -49,15 +49,18 @@ async def health_check(request):
     return web.Response(text="Bot is running!")
 
 async def start_web_server():
-    port = int(os.getenv("PORT", 8080))
-    app = web.Application()
-    app.router.add_get("/", health_check)
-    app.router.add_get("/health", health_check)
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-    logger.info(f"Health-check веб-сервер запущен на порту {port}")
+    try:
+        port = int(os.getenv("PORT", 8080))
+        app = web.Application()
+        app.router.add_get("/", health_check)
+        app.router.add_get("/health", health_check)
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        logger.info(f"Health-check веб-сервер запущен на порту {port}")
+    except Exception as e:
+        logger.warning(f"Веб-сервер не запущен: {e}")
 
 async def main():
     if not BOT_TOKEN or BOT_TOKEN.strip() == "" or BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
